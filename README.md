@@ -1,10 +1,8 @@
 # Structural Variant Calling Benchmark
 
-This benchmark is based on the publicly available PacBio CCS 15kb dataset of
-the Ashkenazim son HG002/NA24385. We provide each step how to reproduce the
-final metrics with publicly available tools.
+This benchmark is based on the publicly available long-read sequencing data (i.e., PacBio CCS 15kb long-reads, PacBio CLR long-reads, Oxford Nanopore PromethION long-reads) of the Ashkenazim son HG002/NA24385. We provide each step how to reproduce the final metrics with publicly available tools.
 
-Please let us know, if you find mistakes or want your tool added.
+Thanks for [armintoepfer's](https://github.com/armintoepfer) great works!
 
 # Comparison
 
