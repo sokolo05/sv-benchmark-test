@@ -1,6 +1,6 @@
 # Structural Variant Calling Benchmark
 
-This benchmark is based on the publicly available long-read sequencing data (i.e., Oxford Nanopore PromethION long-reads) of the Ashkenazim son HG002/NA24385. We provide each step how to reproduce the final metrics with publicly available tools.
+This benchmark is based on the publicly available long-read sequencing data (i.e., Oxford Nanopore PromethION long-reads) of the Ashkenazim son HG002/NA24385. I provide each step how to reproduce the final metrics with publicly available tools.
 
 Thanks for [armintoepfer's](https://github.com/armintoepfer) great works!
 
@@ -60,15 +60,15 @@ Information how to install `conda` and add the `bioconda` channel is available
 on https://bioconda.github.io/.
 
 ```sh
-conda create --name sv python=3.6
+conda create --name sv python=3
 source activate sv
-conda install pbmm2==0.12.0 pbsv==2.2 svim==0.4.3 sniffles==1.0.10
+conda install minimap2==2.17 pbsv==2.2.0 svim==1.2.0 sniffles==1.0.11 cuteSV==1.0.2 truvari==1.2 samtools bgzip tabix
 ```
 
 # Get data
 1) Create directory structure:
 ```sh
-mkdir -p fastqs ref alns alns_merged tools/{pbsv,sniffles} giab
+mkdir -p fastqs ref alns tools/{pbsv,sniffles,svim,cuteSV} giab
 ```
 
 2) Download genome in a bottle annotations:
@@ -78,124 +78,121 @@ curl -s ${FTPDIR}/NIST_SVs_Integration_v0.6/HG002_SVs_Tier1_v0.6.bed > giab/HG00
 curl -s ${FTPDIR}/NIST_SVs_Integration_v0.6/HG002_SVs_Tier1_v0.6.vcf.gz > giab/HG002_SVs_Tier1_v0.6.vcf.gz
 ```
 
-3) Make sure that you have exact truvari version (check that all python dependencies are met, not described):
-```sh
-git clone https://github.com/spiralgenetics/truvari
-(cd truvari; git reset --hard 600b4ed7)
-```
-
-4) Download hg19 reference with decoys and map non-ACGT characters to N:
+3) Download hg19 reference with decoys and map non-ACGT characters to N:
 ```sh
 curl -s ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/technical/reference/phase2_reference_assembly_sequence/hs37d5.fa.gz > ref/human_hs37d5.fasta.gz
 gunzip ref/human_hs37d5.fasta.gz
 sed -i '/^[^>]/ y/BDEFHIJKLMNOPQRSUVWXYZbdefhijklmnopqrsuvwxyz/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/' ref/human_hs37d5.fasta
 ```
 
-5) Download hg19 tandem repeat annotations:
+4) Download hg19 tandem repeat annotations:
 ```sh
 curl -s https://raw.githubusercontent.com/PacificBiosciences/pbsv/master/annotations/human_hs37d5.trf.bed > ref/human_hs37d5.trf.bed
 ```
 
-6) Download all `.fastq` files:
+5) Download all `.fastq` files:
 ```sh
-FTPDIR=ftp://ftp-trace.ncbi.nlm.nih.gov/giab/ftp/data/AshkenazimTrio/HG002_NA24385_son/PacBio_CCS_15kb/
-for fastq in $(curl -s -l ${FTPDIR} | grep -E '.fastq$'); do curl -s ${FTPDIR}${fastq} > fastqs/${fastq}; done
+FTPDIR=ftp://ftp.ncbi.nlm.nih.gov/giab/ftp/data/AshkenazimTrio/HG002_NA24385_son/UCSC_Ultralong_OxfordNanopore_Promethion/
+for fastq in $(curl -s -l ${FTPDIR} | grep '.fastq'); do curl -s ${FTPDIR}${fastq} > fastqs/${fastq}; done
+for fastq in `ls fastqs`; do gunzip fastqs/${fastq}; done
 ```
 
 # Alignment
 
-6) Index reference:
+6) Align each movie:
 ```sh
-pbmm2 index ref/human_hs37d5.fasta ref/human_hs37d5.mmi --preset CCS
+for i in `ls fastqs/`;do
+    minimap2 ref/human_hs37d5.fasta fastq/$i -a -z 600,200 -x map-ont \
+        --MD -Y -o alns/$i.sam -R '@RG\tID:hg2'
+done
 ```
 
-7) Align each movie, can be done in parallel:
+7) Alignments sorting and merging:
 ```sh
-for i in fastqs/*.fastq; do
-    FILENAME="${i#*fastqs/}"
-    FILEPREFIX="${FILENAME%.*}"
-    pbmm2 align ref/human_hs37d5.mmi $i "alns/hg19.${FILEPREFIX}.bam" --preset CCS \
-                --sort --rg '@RG\tID:${FILEPREFIX}' --sample HG2
+for i in `ls alns/`;do
+    samtools view -buS alns/$i | samtools sort -O bam -T ./ - > alns/$i.bam
 done
+for i in `ls alns/*.bam`; do echo $i; done > input_bam.fofn
+samtools merge alns/GM24385_all.bam -b input_bam.fofn && samtools index alns/GM24385_all.bam
 ```
 
 # Run pbsv
 
 8a) Discover SV signatures for each alignment, can be done in parallel:
 ```sh
-for i in alns/*.bam; do
-    FILENAME="${i#*alns/}"
-    FILEPREFIX="${FILENAME%.*}"
-    pbsv discover $i "tools/pbsv/${FILEPREFIX}.svsig.gz" --tandem-repeats ref/human_hs37d5.trf.bed
-done
+pbsv discover alns/GM24385_all.bam tools/pbsv/hg2_ont.svsig.gz" --tandem-repeats ref/human_hs37d5.trf.bed
 ```
 
 8b) Call and polish SVs:
 ```sh
-pbsv call ref/human_hs37d5.fasta tools/pbsv/*.svsig.gz tools/pbsv/hg2.pbsv.vcf --ccs -t INS,DEL
-bgzip tools/pbsv/hg2.pbsv.vcf
-tabix tools/pbsv/hg2.pbsv.vcf.gz
+pbsv call ref/human_hs37d5.fasta tools/pbsv/hg2_ont.svsig.gz tools/pbsv/hg2_ont.pbsv.vcf -t INS,DEL
+bgzip tools/pbsv/hg2_ont.pbsv.vcf
+tabix tools/pbsv/hg2_ont.pbsv.vcf.gz
 ```
 
 # Run svim
 
-9a) Merge and re-sort alignments:
+9a) Run svim:
 ```sh
-ls alns/*.bam > alns_merged/bam_list.fn
-samtools merge -b alns_merged/bam_list.fn alns_merged/hs37d5.all.bam
-samtools sort -n alns_merged/hs37d5.all.bam > alns_merged/hs37d5.all.querysorted.bam
+svim alignment tools/svim alns/GM24385_all.bam ref/human_hs37d5.fasta --min_sv_size 30
 ```
 
-9b) Run svim:
-```sh
-svim alignment --cluster_max_distance 1.4 tools/svim alns_merged/hs37d5.all.querysorted.bam
-```
-
-9c) Prepare for truvari:
+9b) Prepare for truvari:
 ```sh
 cat tools/svim/final_results.vcf \
     | sed 's/INS:NOVEL/INS/g' \
     | sed 's/DUP:INT/INS/g' \
     | sed 's/DUP:TANDEM/INS/g' \
-    | awk '{ if($1 ~ /^#/) { print $0 } else { if(($5=="<DEL>" || $5=="<INS>") && $6>40) { print $0 } } }' \
-    > tools/svim/hg2.svim.vcf
-bgzip tools/svim/hg2.svim.vcf
-tabix tools/svim/hg2.svim.vcf.gz
+    | awk '{ if($1 ~ /^#/) { print $0 } else { if($5=="<DEL>" || $5=="<INS>") { print $0 }}}' \
+    | grep -v 'SUPPORT=1;\|SUPPORT=2;\|SUPPORT=3;\|SUPPORT=4;\|SUPPORT=5;\|SUPPORT=6;\|SUPPORT=7;\|SUPPORT=8;\|SUPPORT=9;' \
+    | sed 's/q5/PASS/g' > tools/svim/hg2_ont.svim.vcf
+bgzip tools/svim/hg2_ont.svim.vcf
+tabix tools/svim/hg2_ont.svim.vcf.gz
 ```
 
 # Run sniffles
 
-10a) Add MD tag to BAM:
+10a) Run sniffles:
 ```sh
-samtools calmd -bS alns_merged/hs37d5.all.bam ref/human_hs37d5.fasta > alns_merged/hs37d5.all.md.bam
+sniffles -s 10 -l 30 -m alns/GM24385_all.bam -v tools/sniffles/hg2_ont.sniffles.vcf --genotype
+```
+10b) Prepare for truvari:
+```sh
+cat <(cat tools/sniffles/hg2_ont.sniffles.vcf | grep "^#") \
+    <(cat tools/sniffles/hg2_ont.sniffles.vcf | grep -vE "^#" | \
+      grep 'DUP\|INS\|DEL' | sed 's/DUP/INS/g' | sort -k1,1 -k2,2g) \
+    | bgzip -c > tools/sniffles/hg2_ont.sniffles.vcf.gz
+tabix tools/sniffles/hg2_ont.sniffles.vcf.gz
 ```
 
-10b) Run sniffles:
+# Run cuteSV
+
+11a) Run cuteSV:
 ```sh
-sniffles -s 3 --skip_parameter_estimation -m alns_merged/hs37d5.all.md.bam -v tools/sniffles/hg2.sniffles.vcf --report_seq
+cuteSV alns/GM24385_all.bam tools/cuteSV/hg2_ont.cuteSV.vcf ./ -s 10 -l 30
 ```
-10c) Prepare for truvari:
+11b) Prepare for truvari:
 ```sh
-cat <(cat tools/sniffles/hg2.sniffles.vcf | grep "^#") \
-    <(cat tools/sniffles/hg2.sniffles.vcf | grep -vE "^#" | \
-      grep 'DUP\|INS\|DEL' | sed 's/DUP/INS/g' | sort -k1,1 -k2,2g) \
-    | bgzip -c > tools/sniffles/hg2.sniffles.vcf.gz
-tabix tools/sniffles/hg2.sniffles.vcf.gz
+grep -v 'INV\|DUP\|BND' tools/cuteSV/hg2_ont.cuteSV.vcf | bgzip -c > tools/cuteSV/hg2_ont.cuteSV.vcf.gz
+tabix tools/cuteSV/hg2_ont.cuteSV.vcf.gz
 ```
 
 # Final comparison
 
 11) Compare to ground truth:
 ```sh
-truvari/truvari.py -f ref/human_hs37d5.fasta -b giab/HG002_SVs_Tier1_v0.6.vcf.gz\
-                   --includebed giab/HG002_SVs_Tier1_v0.6.bed -o bench-pbsv --passonly\
-                   --giabreport -r 1000 -p 0.00 -c tools/pbsv/hg2.pbsv.vcf.gz
-truvari/truvari.py -f ref/human_hs37d5.fasta -b giab/HG002_SVs_Tier1_v0.6.vcf.gz\
-                   --includebed giab/HG002_SVs_Tier1_v0.6.bed -o bench-svim --passonly\
-                   --giabreport -r 1000 -p 0.00 -c tools/svim/hg2.svim.vcf.gz
-truvari/truvari.py -f ref/human_hs37d5.fasta -b giab/HG002_SVs_Tier1_v0.6.vcf.gz\
-                   --includebed giab/HG002_SVs_Tier1_v0.6.bed -o bench-sniffles --passonly\
-                   --giabreport -r 1000 -p 0.00 -c tools/sniffles/hg2.sniffles.vcf.gz
+truvari -f ref/human_hs37d5.fasta -b giab/HG002_SVs_Tier1_v0.6.vcf.gz\
+        --includebed giab/HG002_SVs_Tier1_v0.6.bed -o bench-pbsv --passonly\
+        --giabreport -r 1000 -p 0.00 -c tools/pbsv/hg2.pbsv.vcf.gz
+truvari -f ref/human_hs37d5.fasta -b giab/HG002_SVs_Tier1_v0.6.vcf.gz\
+        --includebed giab/HG002_SVs_Tier1_v0.6.bed -o bench-svim --passonly\
+        --giabreport -r 1000 -p 0.00 -c tools/svim/hg2.svim.vcf.gz
+truvari -f ref/human_hs37d5.fasta -b giab/HG002_SVs_Tier1_v0.6.vcf.gz\
+        --includebed giab/HG002_SVs_Tier1_v0.6.bed -o bench-sniffles --passonly\
+        --giabreport -r 1000 -p 0.00 -c tools/sniffles/hg2.sniffles.vcf.gz
+truvari -f ref/human_hs37d5.fasta -b giab/HG002_SVs_Tier1_v0.6.vcf.gz\
+        --includebed giab/HG002_SVs_Tier1_v0.6.bed -o bench-cuteSV --passonly\
+        --giabreport -r 1000 -p 0.00 -c tools/sniffles/hg2_ont.cuteSV.vcf.gz
 ```
 
 12) Parse results:
@@ -218,102 +215,13 @@ cat <(echo -e "Run\tF1\tPrecision\tRecall\tFP\tFN\tFP+FN")\
 ```
 
 # Coverage titrations
-13) Create a new base folder for each coverage and subsample the merged BAM with MD:
+13) Create a new base folder for each coverage and subsample the merged BAM:
 ```sh
-samtools view -bS -s 0.35 alns_merged/hs37d5.all.md.bam > ../10x/alns_merged/hs37d5.all.md.bam
-samtools view -bS -s 0.18 alns_merged/hs37d5.all.md.bam > ../5x/alns_merged/hs37d5.all.md.bam
+samtools view -bS -s 0.106 alns/GM24385_all.bam > alns/GM24385_all_5x.bam
+samtools view -bS -s 0.213 alns/GM24385_all.bam > alns/GM24385_all_10x.bam
+samtools view -bS -s 0.426 alns/GM24385_all.bam > alns/GM24385_all_20x.bam
 ```
-Repeat steps to run pbsv, sniffles, and svim.
-For pbsv, run `discover` only once for this merged BAM.
+Repeat steps to run pbsv, sniffles, svim and cuteSV.
 
-# Plot
+**For sniffles, svim and cuteSV, I respectively uesd support-read 2, 3, 4 and 10 for 5x, 10x, 20x and 47x.**
 
-14) Extract TP information:
-```sh
- cat bench-pbsv/tp-base.vcf| grep -v '#' | awk '{ split($8,a,";"); for(i in a) { split(a[i],b,"="); if (b[1] == "SVLEN" || b[1] == "PctSizeSimilarity" || b[1] == "SizeDiff") printf(b[2] "\t");  } print "pbsv" }' > pbsv.tpbase
- cat bench-svim/tp-base.vcf| grep -v '#' | awk '{ split($8,a,";"); for(i in a) { split(a[i],b,"="); if (b[1] == "SVLEN" || b[1] == "PctSizeSimilarity" || b[1] == "SizeDiff") printf(b[2] "\t");  } print "svim" }' > svim.tpbase
- cat bench-sniffles/tp-base.vcf| grep -v '#' | awk '{ split($8,a,";"); for(i in a) { split(a[i],b,"="); if (b[1] == "SVLEN" || b[1] == "PctSizeSimilarity" || b[1] == "SizeDiff") printf(b[2] "\t");  } print "sniffles" }' > sniffles.tpbase
-```
-
-15) Run truvari, computing sequence similarity (unsupported by svim):
-```sh
-truvari/truvari.py -f ref/human_hs37d5.fasta -b giab/HG002_SVs_Tier1_v0.6.vcf.gz\
-                   --includebed giab/HG002_SVs_Tier1_v0.6.bed -o bench-seq-pbsv --passonly\
-                   --giabreport -r 1000 -p 0.01 -c tools/pbsv/hg2.pbsv.vcf.gz
-truvari/truvari.py -f ref/human_hs37d5.fasta -b giab/HG002_SVs_Tier1_v0.6.vcf.gz\
-                   --includebed giab/HG002_SVs_Tier1_v0.6.bed -o bench-seq-sniffles --passonly\
-                   --giabreport -r 1000 -p 0.01 -c tools/sniffles/hg2.sniffles.vcf.gz
-```
-
-Extract seq info
-```sh
- cat bench-pbsv/tp-base.vcf | grep -v '#' | awk '{ split($8,a,";"); for(i in a) { split(a[i],b,"="); if (b[1] == "SVLEN" || b[1] == "PctSeqSimilarity") printf(b[2] "\t");  } print "pbsv" }' > pbsv.tpbaseseq
- cat bench-sniffles/tp-base.vcf | grep -v '#' | awk '{ split($8,a,";"); for(i in a) { split(a[i],b,"="); if (b[1] == "SVLEN" || b[1] == "PctSeqSimilarity") printf(b[2] "\t");  } print "sniffles" }' > sniffles.tpbaseseq
-```
-
-16a) Compute perfect SV size matches:
-```R
-tp1 = fread("~/pbsv.tpbase")
-tp2 = fread("~/svim.tpbase")
-tp3 = fread("~/sniffles.tpbase")
-tp = bind_rows(tp1,tp2,tp3)
-names(tp) = c("length", "pct", "diff", "tool")
-tp = tp %>% mutate(type=ifelse(length<0,"DEL","INS"))
-tp$length = abs(tp$length)
-
-tp %>% mutate(bin=abs(diff)) %>% group_by(tool,bin) %>% summarize(count=n()) %>% filter(bin == 0) %>% group_by(tool) %>% summarize(sum(count)/9641)
-```
-
-16b) Plot TP by bins
-```R
-x = bind_rows(tp %>% filter(type=="INS") %>% filter(length<1000) %>% mutate(bin=ceiling(abs(length)/100)*100) %>% group_by(tool,bin,type) %>% summarize(count=n()),
-              tp %>% filter(type=="DEL") %>% filter(length<1000) %>% mutate(bin=ceiling(abs(length)/100)*100) %>% group_by(tool,bin) %>% summarize(count=n()) %>% mutate(bin=-1*bin))
-
-m=1.5
-gs=ggplot() +
-  geom_rect(data=x%>%filter(tool=="pbsv"), aes(xmin=bin-30*m,xmax=bin-10*m,ymin=10,ymax=count,fill=tool))+
-  geom_rect(data=x%>%filter(tool=="svim"), aes(xmin=bin-10*m,xmax=bin+10*m,ymin=10,ymax=count,fill=tool))+
-  geom_rect(data=x%>%filter(tool=="sniffles"), aes(xmin=bin+10*m,xmax=bin+30*m,ymin=10,ymax=count,fill=tool))+
-  scale_x_continuous(breaks=seq(-1000,1000,200),limits=c(-1050,1050))+
-  ylab("Counts")+
-  theme_minimal()
-
-y = bind_rows(tp %>% filter(type=="INS") %>% filter(length<10000 & length>=1000) %>% mutate(bin=round(abs(length)/1000)*1000) %>% group_by(tool,bin) %>% summarize(count=n()),
-              tp %>% filter(type=="DEL") %>% filter(length<10000 & length>=1000) %>% mutate(bin=round(abs(length)/1000)*1000) %>% group_by(tool,bin) %>% summarize(count=n()) %>% mutate(bin=-1*bin))
-gl=ggplot() +
-  geom_rect(data=y%>%filter(tool=="pbsv"), aes(xmin=bin-300*n,xmax=bin-100*n,ymin=0,ymax=count,fill=tool))+
-  geom_rect(data=y%>%filter(tool=="svim"), aes(xmin=bin-100*n,xmax=bin+100*n,ymin=0,ymax=count,fill=tool))+
-  geom_rect(data=y%>%filter(tool=="sniffles"), aes(xmin=bin+100*n,xmax=bin+300*n,ymin=0,ymax=count,fill=tool))+
-  scale_x_continuous(breaks=seq(-20000,20000,2000),limits=c(-10500,10500))+
-  xlab("True SV size")+
-  ylab("Counts")+
-  theme_minimal()
-
-
-g = ggarrange(gs,gl,ncol=1,
-          nrow = 2,
-          common.legend = TRUE,
-          legend="bottom",labels=c("A","B"), align='hv'
-)
-
-ggsave("tp.pdf",g,width=20,height=10,dpi=200,units="cm")
-```
-
-16c) Plot sequence similarity for insertions
-```R
-tpseq1 = fread("~/pbsv.tpbaseseq")
-tpseq3 = fread("~/sniffles.tpbaseseq")
-tpseq = bind_rows(tpseq1,tpseq3)
-names(tpseq) = c("length", "seqpct", "tool")
-tpseq = tpseq %>% mutate(type=ifelse(length<0,"DEL","INS"))
-tpseq$length = abs(tpseq$length)
-
-x = tpseq %>% group_by(tool, type, seqpct) %>% summarize(count=n()) %>% arrange(desc(seqpct)) %>% mutate(s=cumsum(count))
-g = ggplot(x %>% filter(type == "INS")) +
-  geom_line(aes(seqpct, s,col=tool),geom="line")+
-  xlim(c(1.0,0.8)) +
-  xlab("Sequence similarity")+
-  ylab("Cumulative insertion counts")+
-  theme_minimal()
-ggsave("sequence_similarity.pdf",g,width=20,height=10,dpi=200,units="cm")
-```
