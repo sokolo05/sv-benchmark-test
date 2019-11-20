@@ -192,7 +192,7 @@ truvari -f ref/human_hs37d5.fasta -b giab/HG002_SVs_Tier1_v0.6.vcf.gz\
         --giabreport -r 1000 -p 0.00 -c tools/sniffles/hg2.sniffles.vcf.gz
 truvari -f ref/human_hs37d5.fasta -b giab/HG002_SVs_Tier1_v0.6.vcf.gz\
         --includebed giab/HG002_SVs_Tier1_v0.6.bed -o bench-cuteSV --passonly\
-        --giabreport -r 1000 -p 0.00 -c tools/sniffles/hg2_ont.cuteSV.vcf.gz
+        --giabreport -r 1000 -p 0.00 -c tools/cuteSV/hg2_ont.cuteSV.vcf.gz
 ```
 
 12) Parse results:
