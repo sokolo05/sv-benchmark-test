@@ -1,22 +1,57 @@
 # Structural Variant Calling Benchmark
 
-This benchmark is based on the publicly available long-read sequencing data (i.e., PacBio CCS 15kb long-reads, PacBio CLR long-reads, Oxford Nanopore PromethION long-reads) of the Ashkenazim son HG002/NA24385. We provide each step how to reproduce the final metrics with publicly available tools.
+This benchmark is based on the publicly available long-read sequencing data (i.e., Oxford Nanopore PromethION long-reads) of the Ashkenazim son HG002/NA24385. We provide each step how to reproduce the final metrics with publicly available tools.
 
 Thanks for [armintoepfer's](https://github.com/armintoepfer) great works!
 
 # Comparison
 
-At 28-fold coverage:
+#### Coverage titration for 5, 10, 20 and 47-fold:
 
-|Run|F1^ %|Precision %|Recall %|FP|FN|FP+FN|
+**Fig 1. Recall & Precision**
+
+<img src="img/ONT.png" width="750px">
+
+**Fig 2. GT-Recall & GT-Precision**
+
+<img src="img/ont_gt.png" width="750px">
+
+#### At 5-fold coverage:
+
+|Method|F1 %|Precision %|Recall %|GT-F1 %|GT-Precision %|GT-Recall %|
 |:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-|[**pbsv**](https://github.com/PacificBiosciences/pbsv)|96.29|94.61|98.02|538|191|729|
-|[**svim**](https://github.com/eldariont/svim)|94.12|93.76|94.48|606|532|1138|
-|[**sniffles**](https://github.com/fritzsedlazeck/Sniffles)|93.56|93.30|93.83|650|595|1245|
+|[**pbsv**](https://github.com/PacificBiosciences/pbsv)| 63.20| 75.45| 54.37| 55.33| 62.46| 49.66|
+|[**svim**](https://github.com/eldariont/svim)| 75.25| 78.43| 72.33| 50.40| 43.80| 59.34|
+|[**sniffles**](https://github.com/fritzsedlazeck/Sniffles)| 73.89| 83.74| 66.11| 48.82| 46.15| 51.81|
+|[**cuteSV**](https://github.com/tjiangHIT/cuteSV)| **81.74**| **90.63**| **74.44**| **68.60**| **68.46**| **68.75**|
 
-Coverage titration for 5, 10, and 28-fold:
+#### At 10-fold coverage:
 
-<img src="img/ccs_metrics.png" width="500px">
+|Method|F1 %|Precision %|Recall %|GT-F1 %|GT-Precision %|GT-Recall %|
+|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+|[**pbsv**](https://github.com/PacificBiosciences/pbsv)| 79.99| 81.86| 78.20| 73.23| 70.96| 75.66|
+|[**svim**](https://github.com/eldariont/svim)| 81.55| 81.11| 81.99| 74.60| 70.09| 79.74|
+|[**sniffles**](https://github.com/fritzsedlazeck/Sniffles)| 80.80| 87.66| 74.94| 56.90| 51.42| 63.69|
+|[**cuteSV**](https://github.com/tjiangHIT/cuteSV)| **88.85**| **93.07**| **85.00**| **78.53**| **75.26**| **82.09**|
+
+
+#### At 20-fold coverage:
+
+|Method|F1 %|Precision %|Recall %|GT-F1 %|GT-Precision %|GT-Recall %|
+|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+|[**pbsv**](https://github.com/PacificBiosciences/pbsv)| 85.98| 88.60| 83.52| 79.65| **77.75**| 81.64|
+|[**svim**](https://github.com/eldariont/svim)| 83.35| 76.60| 91.39| 77.26| 67.49| 90.34|
+|[**sniffles**](https://github.com/fritzsedlazeck/Sniffles)| 84.78| 84.78| 84.78| 62.37| 52.21| 77.43|
+|[**cuteSV**](https://github.com/tjiangHIT/cuteSV)| **93.34**| **92.22**| **94.49**| **83.89**| 76.13| **93.41**|
+
+#### At 47-fold coverage: (pbsv crashed!)
+
+|Method|F1 %|Precision %|Recall %|GT-F1 %|GT-Precision %|GT-Recall %|
+|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+|[**pbsv**](https://github.com/PacificBiosciences/pbsv)|--|--|--|--|--|--|
+|[**svim**](https://github.com/eldariont/svim)| 88.74| 85.95| 91.72| 82.82| 76.16| 90.76|
+|[**sniffles**](https://github.com/fritzsedlazeck/Sniffles)| 86.98| 84.63| 89.46| 64.78| 52.69| 84.09|
+|[**cuteSV**](https://github.com/tjiangHIT/cuteSV)| **94.33**| **92.15**| **96.61**| **87.64**| **80.53**| **96.14**|
 
 
 # Get tools
