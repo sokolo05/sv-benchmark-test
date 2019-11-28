@@ -23,7 +23,7 @@ Thanks for [armintoepfer's](https://github.com/armintoepfer) great works!
 |[**pbsv**](https://github.com/PacificBiosciences/pbsv)| 63.20| 75.45| 54.37| 55.33| 62.46| 49.66|
 |[**svim**](https://github.com/eldariont/svim)| 75.25| 78.43| 72.33| 50.40| 43.80| 59.34|
 |[**sniffles**](https://github.com/fritzsedlazeck/Sniffles)| 73.89| 83.74| 66.11| 48.82| 46.15| 51.81|
-|[**cuteSV**](https://github.com/tjiangHIT/cuteSV)| **81.74**| **90.63**| **74.44**| **68.60**| **68.46**| **68.75**|
+|[**cuteSV**](https://github.com/tjiangHIT/cuteSV)| **81.74**| **90.63**| **74.44**| **73.66**| **76.45**| **71.07**|
 
 #### At 10-fold coverage:
 
@@ -32,17 +32,17 @@ Thanks for [armintoepfer's](https://github.com/armintoepfer) great works!
 |[**pbsv**](https://github.com/PacificBiosciences/pbsv)| 79.99| 81.86| 78.20| 73.23| 70.96| 75.66|
 |[**svim**](https://github.com/eldariont/svim)| 81.55| 81.11| 81.99| 74.60| 70.09| 79.74|
 |[**sniffles**](https://github.com/fritzsedlazeck/Sniffles)| 80.80| 87.66| 74.94| 56.90| 51.42| 63.69|
-|[**cuteSV**](https://github.com/tjiangHIT/cuteSV)| **88.85**| **93.07**| **85.00**| **78.53**| **75.26**| **82.09**|
+|[**cuteSV**](https://github.com/tjiangHIT/cuteSV)| **88.85**| **93.07**| **85.00**| **83.83**| **84.00**| **83.65**|
 
 
 #### At 20-fold coverage:
 
 |Method|F1 %|Precision %|Recall %|GT-F1 %|GT-Precision %|GT-Recall %|
 |:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-|[**pbsv**](https://github.com/PacificBiosciences/pbsv)| 85.98| 88.60| 83.52| 79.65| **77.75**| 81.64|
+|[**pbsv**](https://github.com/PacificBiosciences/pbsv)| 85.98| 88.60| 83.52| 79.65| 77.75| 81.64|
 |[**svim**](https://github.com/eldariont/svim)| 83.35| 76.60| 91.39| 77.26| 67.49| 90.34|
 |[**sniffles**](https://github.com/fritzsedlazeck/Sniffles)| 84.78| 84.78| 84.78| 62.37| 52.21| 77.43|
-|[**cuteSV**](https://github.com/tjiangHIT/cuteSV)| **93.34**| **92.22**| **94.49**| **83.89**| 76.13| **93.41**|
+|[**cuteSV**](https://github.com/tjiangHIT/cuteSV)| **93.34**| **92.22**| **94.49**| **90.13**| **86.44**| **94.15**|
 
 #### At 47-fold coverage: (pbsv crashed!)
 
@@ -51,7 +51,7 @@ Thanks for [armintoepfer's](https://github.com/armintoepfer) great works!
 |[**pbsv**](https://github.com/PacificBiosciences/pbsv)|--|--|--|--|--|--|
 |[**svim**](https://github.com/eldariont/svim)| 88.74| 85.95| 91.72| 82.82| 76.16| 90.76|
 |[**sniffles**](https://github.com/fritzsedlazeck/Sniffles)| 86.98| 84.63| 89.46| 64.78| 52.69| 84.09|
-|[**cuteSV**](https://github.com/tjiangHIT/cuteSV)| **94.33**| **92.15**| **96.61**| **87.64**| **80.53**| **96.14**|
+|[**cuteSV**](https://github.com/tjiangHIT/cuteSV)| **94.33**| **92.15**| **96.61**| **91.98**| **87.91**| **96.45**|
 
 
 # Get tools
@@ -62,7 +62,7 @@ on https://bioconda.github.io/.
 ```sh
 conda create --name sv python=3
 source activate sv
-conda install minimap2==2.17 pbsv==2.2.0 svim==1.2.0 sniffles==1.0.11 cuteSV==1.0.2 truvari==1.2 samtools bgzip tabix
+conda install minimap2==2.17 pbsv==2.2.0 svim==1.2.0 sniffles==1.0.11 cuteSV==1.0.3 truvari==1.2 samtools bgzip tabix
 ```
 
 # Get data
