@@ -14,7 +14,7 @@ Thanks for [armintoepfer's](https://github.com/armintoepfer) great works!
 
 **Fig 2. GT-Recall & GT-Precision**
 
-<img src="img/ont_gt.png" width="750px">
+<img src="img/ONT_GT.png" width="750px">
 
 #### At 5-fold coverage:
 
