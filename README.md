@@ -60,9 +60,10 @@ Information how to install `conda` and add the `bioconda` channel is available
 on https://bioconda.github.io/.
 
 ```sh
-conda create --name sv python=3
-source activate sv
-conda install minimap2==2.17 pbsv==2.2.0 svim==1.2.0 sniffles==1.0.11 cuteSV==1.0.3 truvari==1.2 samtools bgzip tabix
+conda create -n benchmark3.8 python=3.8
+conda activate benchmark3.8
+conda install minimap2==2.17 pbsv==2.2.0 svim==2.0.0 sniffles==2.2 cuteSV==1.0.3 truvari==4.3.1 samtools 
+pip install bgzip tabix
 ```
 
 # Get data
